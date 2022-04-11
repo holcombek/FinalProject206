@@ -13,7 +13,7 @@ def setUpDatabase(db_name):
     cur = conn.cursor()
     return cur, conn
 
-# 25 items at a time?
+
 # option to input which week(s) you want to look at?
 #consider multiple weeks as well, could make list of urls and do for each url
 def get_top_100_billboard():
@@ -23,10 +23,9 @@ def get_top_100_billboard():
     if r.ok:
         top_100_song_lst = []
         soup = BeautifulSoup(r.content, 'html.parser')
-        tags = soup.find_all('li', class_="o-chart-results-list__item // lrv-u-flex-grow-1 lrv-u-flex lrv-u-flex-direction-column lrv-u-justify-content-center lrv-u-border-b-1 u-border-b-0@mobile-max lrv-u-border-color-grey-light lrv-u-padding-l-050 lrv-u-padding-l-1@mobile-max")
-        i = 0
-        for tag in tags:
-            #currently skipping first song, may have different find keywords
+        top = soup.find_all('ul', class_="lrv-a-unstyle-list lrv-u-flex lrv-u-height-100p lrv-u-flex-direction-column@mobile-max")
+        i = 1
+        for tag in top:
             curr_song = {}
             title = tag.find('h3', id='title-of-a-story').text.strip()
             artist = tag.find('span').text.strip()
@@ -36,20 +35,26 @@ def get_top_100_billboard():
     return top_100_song_lst
 
 def top_100_into_database(lst, cur, conn):
-    #Takes in top 100 list and creates table in database
+    #Takes in top 100 list and creates table in database 25 items at a time
     cur.execute("CREATE TABLE IF NOT EXISTS Billboard (song_id INTEGER PRIMARY KEY, song_title TEXT, artist TEXT)")
-    conn.commit()
-    count = 0
-    for item in lst:
+    cur.execute("SELECT song_id FROM Billboard WHERE song_id = (SELECT MAX(song_id) FROM Billboard)")
+    curr_spot = cur.fetchone()
+    if curr_spot[0] == None:
+        count = 1
+    else:
+        count = curr_spot[0] + 1
+    for item in lst[count - 1:count + 24]:
         cur.execute("INSERT INTO Billboard (song_id, song_title, artist) VALUES (?, ?, ?)", (count, item[count][0], item[count][1]))
         count += 1
-        conn.commit()
+    conn.commit()
 
 
 def main():
     cur, conn = setUpDatabase("final.db")
-    #song_list = get_top_100_billboard()
-    #top_100_into_database(song_list, cur, conn)
+    song_list = get_top_100_billboard()
+    #Puts 25 songs into database, run in total 4 times to get 100 songs
+    top_100_into_database(song_list, cur, conn)
+
 
 if __name__ == "__main__":
     main()
