@@ -2,10 +2,9 @@ import sqlite3
 import os
 import requests
 from bs4 import BeautifulSoup
-import json
 
 # This file gets the top 100 songs from Billboard Hot 100 and puts them into a database
-# No visualisations done for this data
+# No visualisations done for this data (could look at one song and its placement over weeks)
 
 def setUpDatabase(db_name):
     path = os.path.dirname(os.path.abspath(__file__))
@@ -13,47 +12,51 @@ def setUpDatabase(db_name):
     cur = conn.cursor()
     return cur, conn
 
-
-# option to input which week(s) you want to look at?
-#consider multiple weeks as well, could make list of urls and do for each url
 def get_top_100_billboard():
-    url = "https://www.billboard.com/charts/hot-100/"
+    #Looking at last 4 weeks of Billboard Top 100
+    week_lst = ['2022-04-16', '2022-04-09', '2022-04-02', '2022-03-26']
+    last_4_wk_top_100 = []
+    for w in range(4):
+        url = "https://www.billboard.com/charts/hot-100/" + week_lst[w] + '/'
     #Using BeautifulSoup to parse website for song title and artist name
-    r = requests.get(url)
-    if r.ok:
-        top_100_song_lst = []
-        soup = BeautifulSoup(r.content, 'html.parser')
-        top = soup.find_all('ul', class_="lrv-a-unstyle-list lrv-u-flex lrv-u-height-100p lrv-u-flex-direction-column@mobile-max")
-        i = 1
-        for tag in top:
-            curr_song = {}
-            title = tag.find('h3', id='title-of-a-story').text.strip()
-            artist = tag.find('span').text.strip()
-            curr_song[i] = (title, artist)
-            top_100_song_lst.append(curr_song)
-            i += 1
-    return top_100_song_lst
+        r = requests.get(url)
+        if r.ok:
+            top_100_song_lst = []
+            soup = BeautifulSoup(r.content, 'html.parser')
+            top = soup.find_all('ul', class_="lrv-a-unstyle-list lrv-u-flex lrv-u-height-100p lrv-u-flex-direction-column@mobile-max")
+            i = 1
+            for tag in top:
+                curr_song = {}
+                title = tag.find('h3', id='title-of-a-story').text.strip()
+                artist = tag.find('span').text.strip()
+                curr_song[i] = (title, artist)
+                top_100_song_lst.append(curr_song)
+                i += 1
+        last_4_wk_top_100.append(top_100_song_lst)
+    return last_4_wk_top_100
 
-def top_100_into_database(lst, cur, conn):
-    #Takes in top 100 list and creates table in database 25 items at a time
-    cur.execute("CREATE TABLE IF NOT EXISTS Billboard (song_id INTEGER PRIMARY KEY, song_title TEXT, artist TEXT)")
-    cur.execute("SELECT song_id FROM Billboard WHERE song_id = (SELECT MAX(song_id) FROM Billboard)")
+def top_100_into_database(lst, name, cur, conn):
+    #Takes in last 4 weeks top 100 list and creates table in database 25 items at a time (for each lst)
+    cur.execute("CREATE TABLE IF NOT EXISTS "+ name + "(song_id INTEGER PRIMARY KEY, song_title TEXT, artist TEXT)")
+    cur.execute("SELECT song_id FROM " + name + "WHERE song_id = (SELECT MAX(song_id) FROM " + name + ")")
     curr_spot = cur.fetchone()
-    if curr_spot[0] == None:
+    if curr_spot == None:
         count = 1
     else:
         count = curr_spot[0] + 1
     for item in lst[count - 1:count + 24]:
-        cur.execute("INSERT INTO Billboard (song_id, song_title, artist) VALUES (?, ?, ?)", (count, item[count][0], item[count][1]))
+        cur.execute("INSERT INTO " + name + "(song_id, song_title, artist) VALUES (?, ?, ?)", (count, item[count][0], item[count][1]))
         count += 1
     conn.commit()
 
 
 def main():
     cur, conn = setUpDatabase("final.db")
+    #Holds last 4 weeks (1 being most recent)
     song_list = get_top_100_billboard()
-    #Puts 25 songs into database, run in total 4 times to get 100 songs
-    top_100_into_database(song_list, cur, conn)
+    #Puts 25 songs into database for each week, run in total 4 times to get 100 songs
+    for i in range(4):
+        top_100_into_database(song_list[i], f'Billboard_week_{i+1} ', cur, conn)
 
 
 if __name__ == "__main__":
