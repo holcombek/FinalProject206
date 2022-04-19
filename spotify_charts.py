@@ -1,6 +1,8 @@
 import sqlite3
 import os
 from bs4 import BeautifulSoup
+import seaborn as sns
+import matplotlib.pyplot as plt
 
 #This file parses through html files saved from the Spotify Charts (older) website (https://spotifycharts.com/regional)
 # and saves all data into a dictionary for each week, then uses those dictionaries to cross reference with Billboard
@@ -55,6 +57,7 @@ def get_data():
 def database(dictr, j, names, start, cur,conn):
     #cur.execute('DROP TABLE IF EXISTS ' + names)
     # billboard tables in database
+    # week 1 is earliest week, week 4 most recent
     name_lst = ['Billboard_week_1', 'Billboard_week_2', 'Billboard_week_3', 'Billboard_week_4']
     cur.execute('CREATE TABLE IF NOT EXISTS ' + names + ' (song_id INTEGER PRIMARY KEY, streams INTEGER)')
     conn.commit()
@@ -104,6 +107,21 @@ def joining_billboard_spotify_tables(i, cur, conn):
                     ON Billboard_week_{i}.song_id = spotify_streams_week_{i}.song_id
                     ORDER BY spotify_streams_week_{i}.streams DESC''')
 
+def visualisation(cur, conn):
+    #finding max streams from each week
+    max_streams = []
+    for i in range(1,5):
+        cur.execute(f'SELECT MAX(streams), song_title FROM billboardXspotify_wk{i}')
+        info = cur.fetchall()
+        max_streams.append(info[0][0])
+    print(max_streams)
+    plt.figure(figsize=(10,10))
+    plt.title("Billboard Top Song Number of Streams Over Past 4 Weeks")
+    plt.xlabel('Weeks')
+    plt.ylabel('Number of Streams (in tens of millions)')
+    streamplot = sns.lineplot(data=max_streams, markers = True, dashes= True)
+    plt.show()
+
 def main():
     #Setting up connection to database
     cur,conn = setUpDatabase('final.db')
@@ -119,8 +137,10 @@ def main():
     #for i in range(4):
         #database(playlist_lst[i], i, name_lst[i], start, cur, conn)
     
-    for i in range(1,5):
-        joining_billboard_spotify_tables(i, cur, conn)
+    #for i in range(1,5):
+        #joining_billboard_spotify_tables(i, cur, conn)
+    
+    visualisation(cur, conn)
 
 
 
