@@ -94,9 +94,15 @@ def database(dictr, j, names, start, cur,conn):
                 conn.commit()
     conn.commit()
 
-#need to use JOIN on billboard and spotify table
-def joining_tables():
-    pass
+#Using JOIN on billboard and spotify tables; match song_id's so that we match song to number of streams
+def joining_billboard_spotify_tables(i, cur, conn):
+    #cur.execute(f'DROP TABLE IF EXISTS billboardXspotify_wk{i}')
+    cur.execute(f'''CREATE TABLE billboardXspotify_wk{i} AS 
+                    SELECT Billboard_week_{i}.song_id AS 'billboard_rank_id',
+                    Billboard_week_{i}.artist, Billboard_week_{i}.song_title, spotify_streams_week_{i}.streams 
+                    FROM Billboard_week_{i} JOIN spotify_streams_week_{i} 
+                    ON Billboard_week_{i}.song_id = spotify_streams_week_{i}.song_id
+                    ORDER BY spotify_streams_week_{i}.streams DESC''')
 
 def main():
     #Setting up connection to database
@@ -110,8 +116,11 @@ def main():
     start = 75
 
     #Run 4 times to go through all 100 songs of each playlist
-    for i in range(4):
-        database(playlist_lst[i], i, name_lst[i], start, cur, conn)
+    #for i in range(4):
+        #database(playlist_lst[i], i, name_lst[i], start, cur, conn)
+    
+    for i in range(1,5):
+        joining_billboard_spotify_tables(i, cur, conn)
 
 
 
