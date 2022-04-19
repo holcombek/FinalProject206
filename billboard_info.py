@@ -38,7 +38,7 @@ def get_top_100_billboard():
 def top_100_into_database(lst, name, cur, conn):
     #Takes in last 4 weeks top 100 list and creates table in database 25 items at a time (for each lst)
     #rename billboard tables to match spotify
-    #cur.execute('DROP TABLE IF EXISTS ' + name)
+    # week 1 is earliest week, week 4 most recent week
     cur.execute("CREATE TABLE IF NOT EXISTS "+ name + "(song_id INTEGER PRIMARY KEY, song_title TEXT, artist TEXT)")
     cur.execute("SELECT song_id FROM " + name + "WHERE song_id = (SELECT MAX(song_id) FROM " + name + ")")
     curr_spot = cur.fetchone()
