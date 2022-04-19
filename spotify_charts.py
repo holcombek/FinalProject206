@@ -2,6 +2,7 @@ import sqlite3
 import os
 import requests
 from bs4 import BeautifulSoup
+import re
 # 200 songs from website, make list all songs, search for songs in lst, get streaming data and put into table
 
 def setUpDatabase(db_name):
@@ -38,33 +39,42 @@ def get_data():
             all_lst.append(song_lst)
     return all_lst
 
-   
-# bar graph of top 5 songs and number of total streams
-# line graph top song and number of streams over month
-def database(lst, j, names, cur,conn):
+
+def database(dictr, j, names, start, cur,conn):
+    #start = 0
     #takes in song dict
+    # week 4 is furthest away week
+    #execute('DROP TABLE IF EXISTS ' + names)
     name_lst = ['Billboard_week_4', 'Billboard_week_3', 'Billboard_week_2', 'Billboard_week_1']
-    cur.execute('CREATE TABLE IF NOT EXISTS ' + names + ' (song_id INTEGER PRIMARY KEY, streams TEXT)')
+    cur.execute('CREATE TABLE IF NOT EXISTS ' + names + ' (song_id INTEGER PRIMARY KEY, streams TEXT, title TEXT)')
     conn.commit()
-    #FIX TO INSERT 25 AT A TIME
-    for i in range(len(lst)):
-        cur_title = lst[i+1][1]
-        cur_streams = lst[i+1][0]
-        #names different, need to clean data
-        cur.execute(F'SELECT song_id FROM {name_lst[j]} WHERE song_title = \'{cur_title}\' ')
-        id = cur.fetchone()[0]
-        cur.execute(f'INSERT OR IGNORE INTO {names} (song_id, streams) VALUES(?,?)', (id, cur_streams))
-        print('working')
+    for item in range(start,start+25):
+        cur_title = dictr[item+1][1]
+        streams = dictr[item+1][0]
+        cur_title = cur_title.lower().strip().replace("(", "").replace("'","").replace("-","").replace(")", "")
+        #print(cur_title)
+        cur.execute(f'SELECT * FROM {name_lst[j]} WHERE song_title = \'{cur_title}\' ')
+        song_data = cur.fetchall()
+        if song_data == []:
+            continue
+        else:
+            id = song_data[0][0]
+            cur.execute(f'INSERT OR IGNORE INTO {names} (song_id, streams, title) VALUES(?,?,?)', (id, streams, cur_title))
+            #print('working')
+        conn.commit()
+
+
     conn.commit()
-    #get song_id, match put into database w streams (total 8 tables in database)
 
 def main():
     cur,conn = setUpDatabase('final.db')
     lst = get_data()
     #database(lst)
     #NEED TO ACCOUNT FOR ALL 4 WEEKS
+    start = 0
     for i in range(4):
-        database(lst[i], i, f'spotify_streams_week_{i+1} ', cur, conn)
+        database(lst[i], i, f'spotify_streams_week_{i+1} ', start, cur, conn)
+        start+=25
 
 
 
