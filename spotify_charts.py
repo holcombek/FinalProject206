@@ -61,7 +61,9 @@ def database(dictr, j, names, start, cur,conn):
     # getting all song titles only from billboard to cross reference
     cur.execute(f'SELECT song_title FROM ' + name_lst[j])
     billboard_songs = cur.fetchall()
-    new_billboard, current, streaming = []
+    new_billboard = []
+    current = []
+    streaming = []
     for song in billboard_songs:
         # adds billboard song titles as a string to new list
         new_billboard.append(song[0])
@@ -88,7 +90,7 @@ def database(dictr, j, names, start, cur,conn):
             else:
                 # gets id from Billboard chart, to cross reference later for song_title
                 id = song_data[0][0]
-                cur.execute(f'INSERT INTO {names} (song_id, streams) VALUES(?,?,?)', (id, streaming[position]))
+                cur.execute(f'INSERT INTO {names} (song_id, streams) VALUES(?,?)', (id, streaming[position]))
                 conn.commit()
     conn.commit()
 
@@ -105,7 +107,7 @@ def main():
 
     #Set up names, start range
     name_lst = ['spotify_streams_week_1' , 'spotify_streams_week_2', 'spotify_streams_week_3', 'spotify_streams_week_4']
-    start = 0
+    start = 75
 
     #Run 4 times to go through all 100 songs of each playlist
     for i in range(4):
