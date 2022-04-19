@@ -14,7 +14,7 @@ def setUpDatabase(db_name):
 
 def get_top_100_billboard():
     #Looking at last 4 weeks of Billboard Top 100
-    week_lst = ['2022-04-16', '2022-04-09', '2022-04-02', '2022-03-26']
+    week_lst = ['2022-03-26', '2022-04-02', '2022-04-09', '2022-04-16']
     last_4_wk_top_100 = []
     for w in range(4):
         url = "https://www.billboard.com/charts/hot-100/" + week_lst[w] + '/'
@@ -37,6 +37,8 @@ def get_top_100_billboard():
 
 def top_100_into_database(lst, name, cur, conn):
     #Takes in last 4 weeks top 100 list and creates table in database 25 items at a time (for each lst)
+    #rename billboard tables to match spotify
+    #cur.execute('DROP TABLE IF EXISTS ' + name)
     cur.execute("CREATE TABLE IF NOT EXISTS "+ name + "(song_id INTEGER PRIMARY KEY, song_title TEXT, artist TEXT)")
     cur.execute("SELECT song_id FROM " + name + "WHERE song_id = (SELECT MAX(song_id) FROM " + name + ")")
     curr_spot = cur.fetchone()
@@ -45,7 +47,7 @@ def top_100_into_database(lst, name, cur, conn):
     else:
         count = curr_spot[0] + 1
     for item in lst[count - 1:count + 24]:
-        cur.execute("INSERT INTO " + name + "(song_id, song_title, artist) VALUES (?, ?, ?)", (count, item[count][0], item[count][1]))
+        cur.execute("INSERT INTO " + name + "(song_id, song_title, artist) VALUES (?, ?, ?)", (count, item[count][0].lower().strip().replace("(", "").replace("'","").replace('-', "").replace(")", "").replace(" ", ""), item[count][1]))
         count += 1
     conn.commit()
 
