@@ -10,6 +10,11 @@ from zipfile import ZipFile
 
 #Get Yahoo Finance Spotify Data from APIs
 def get_Spotify_Price():
+    '''
+    Takes in nothing and returns price_list
+    Uses Yahoo Finance API to get day to day closing price for the Spotify Stock
+    Appends each day's price into a list
+    '''
     price_List = []
     spot = yf.Ticker('SPOT')
     resp = spot.history(period = '1mo', interval = '1d')
@@ -20,6 +25,11 @@ def get_Spotify_Price():
 
 #Get Trading Volume of Spotify from API
 def get_Spotify_Volume():
+    '''
+    Takes in nothing and returns volume_list
+    Uses Yahoo Finance API to get day to day trading volume for the Spotify Stock
+    Appends each day's volume into a list
+    '''
     volume_list = []
     spot = yf.Ticker('SPOT')
     response = spot.history(period = '1mo', interval = '1d')
@@ -31,6 +41,13 @@ def get_Spotify_Volume():
 
 #Calculate Day-to-day Variance
 def get_Variance():
+    '''
+    Takes in nothing and returns variance_list
+    Uses Yahoo Finance API to get day to day price for the Spotify Stock
+    Then, calculates the variance by subtracting each day's price from the day prior
+    Beginning with the second day as the first day has no prior day to compare to
+    Appends each day's variance into a list
+    '''
     price_list = get_Spotify_Price()
     variance_list = []
     for index, value in enumerate(price_list[1:]):
@@ -42,6 +59,11 @@ def get_Variance():
 
 #Connect to Database for Data Retrieval
 def setUpDatabase(db_name):
+    '''
+    Takes in db_name and returns cur, conn
+    Connects to database (in this case final.db)
+    Establishes cur and conn variables for later use with the database
+    '''
     path = os.path.dirname(os.path.abspath(__file__))
     conn = sqlite3.connect(path+'/'+db_name)
     cur = conn.cursor()
@@ -49,6 +71,12 @@ def setUpDatabase(db_name):
 
 #Retrieve Number of Streams from the Database
 def retrieve_Streams(cur, conn):
+    '''
+    Takes in cur and conn and returns total_streams
+    Uses database connection and SELECT SQL command to retrieve the streams for each week
+    Sums each weeks streams
+    Adds the sum for each week into a list of total streams for each week
+    '''
     list1 = []
     list2 = []
     list3 = []
@@ -92,6 +120,12 @@ def retrieve_Streams(cur, conn):
 
 #Visualize Variance
 def visualize_Variance():
+    '''
+    Takes in nothing and returns variance_Graph
+    Uses get_Variance function from above to get list of day-to-day variance of Spotify's stock price
+    Uses a pandas dataframe in order to properly label and set the data
+    Uses seaborn and matplotlib to visualize variance_graph
+    '''
     variance = get_Variance()
     df = pd.DataFrame(variance, columns = ['Variance'])
     print(df)
@@ -106,6 +140,11 @@ def visualize_Variance():
 
 #Visualize Volume
 def visualize_Volume():
+    '''
+    Takes in nothing and returns volume_graph
+    Uses the code from get_Volume to retrieve data for volume
+    Uses seaborn and matplotlib to visualize volume_graph
+    '''
     spot = yf.Ticker('SPOT')
     response = spot.history(period = '1mo', interval = '1d')
     volume_graph = plt.figure(figsize=(14, 5))
@@ -118,6 +157,13 @@ def visualize_Volume():
 
 #Visualize a linear regression plot for the two variables of Streams and Stock Price
 def visualize_correlation(cur, conn):
+    '''
+    Takes in cur and conn and returns visualizeCorrelation
+    Creates the linear regression plot for the variables of Spotify Streams and Spotify Stock Price
+    Uses retrieved streaming data from retrieve_Streams
+    Uses pandas dataframes to combine the data for use
+    matplotlib and seaborn are used to visualize visualizeCorrelation
+    '''
     spot = yf.Ticker('SPOT')
     data1 = retrieve_Streams(cur, conn)
     price_List = []
@@ -143,19 +189,31 @@ def visualize_correlation(cur, conn):
 
 #Write Calculations to Text File which can then be zipped
 def write_to_text(calculation1, calculation2, calculation3, calculation4):
-   file_name = 'calculations.txt'
+    '''
+    Takes in the four calculations from above and returns None
+    Writes calculations into a text file in directory
+    '''
+    file_name = 'calculations.txt'
    #full_path = os.path.join(save_path, file_name)
-   with open(file_name, 'w') as f:
-    f.writelines(' Spotify Price: ' + str(calculation1) + '\n')
-    f.writelines(' Spotify Trading Volume: ' + str(calculation2) + '\n')
-    f.writelines(' Spotify Stock Price Variance: ' + str(calculation3) + '\n')
-    f.writelines(' Stream Data from Database: ' + str((calculation4)) + '\n')
+    with open(file_name, 'w') as f:
+     f.writelines(' Spotify Price: ' + str(calculation1) + '\n')
+     f.writelines(' Spotify Trading Volume: ' + str(calculation2) + '\n')
+     f.writelines(' Spotify Stock Price Variance: ' + str(calculation3) + '\n')
+     f.writelines(' Stream Data from Database: ' + str((calculation4)) + '\n')
    
     f.close()
 
+    return None
 
-#Main function to call the code
+
+#Main function of the file to call the code
 def main():
+    '''
+    Takes in nothing and returns None
+    Used to set up and run all the code above
+    Utilizes cur, conn, and calculations 1-4 variables as well as final.db string
+    To make sure each function has the necessary variables to run properly
+    '''
     cur, conn = setUpDatabase('final.db')
     calculation1 = get_Spotify_Price()
     calculation2 = get_Spotify_Volume()
@@ -165,5 +223,7 @@ def main():
     calculation4 =  retrieve_Streams(cur, conn)
     visualize_correlation(cur, conn)
     write_to_text(calculation1, calculation2, calculation3, calculation4)
+
+    return None
 
 main()
